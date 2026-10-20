@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b7a75">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Apoio Aula 12 / Momento de Inércia</title>
+<style>
+:root{--bg:#f3f6f2;--board:#fdfdfb;--ink:#17262b;--mute:#586a6e;--acc:#0b7a75;--hi:#a8500a;--line:#d3dcd7;--res:#e1f1e7;--chip:#e6ede9;
+--why-bg:#e3f1ef;--why-bd:#0b7a75;--err-bg:#fbe9e2;--err-bd:#b3411f;--real-bg:#e8eefb;--real-bd:#3b5bb5;--tip-bg:#fff2d2;--tip-bd:#a67a00;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1919;--board:#1a2a28;--ink:#eeeadc;--mute:#9db1ab;--acc:#7fd0d6;--hi:#f2c14e;--line:#2e4642;--res:#23402e;--chip:#223633;--why-bg:#173433;--why-bd:#7fd0d6;--err-bg:#3d231c;--err-bd:#f08a6c;--real-bg:#1d2740;--real-bd:#8fb0ff;--tip-bg:#3a3118;--tip-bd:#f2c14e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1919;--board:#1a2a28;--ink:#eeeadc;--mute:#9db1ab;--acc:#7fd0d6;--hi:#f2c14e;--line:#2e4642;--res:#23402e;--chip:#223633;--why-bg:#173433;--why-bd:#7fd0d6;--err-bg:#3d231c;--err-bd:#f08a6c;--real-bg:#1d2740;--real-bd:#8fb0ff;--tip-bg:#3a3118;--tip-bd:#f2c14e;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit}
+button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.app{height:100vh;height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--board)}
+.logo{height:34px;width:auto;background:#fff;border-radius:8px;padding:4px 8px;flex:0 0 auto}
+.ttl{flex:1;min-width:0}
+.ttl b{display:block;font:700 1.05rem/1.2 Georgia,"Times New Roman",serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ttl span{display:block;color:var(--mute);font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb{display:flex;gap:8px;flex:0 0 auto}
+.tb button{border:1px solid var(--acc);background:transparent;color:var(--acc);padding:7px 12px;border-radius:999px;font:600 .85rem system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.hd2{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:8px 14px 0;flex-wrap:wrap}
+.hd2 h2{margin:0;font:700 1.05rem/1.3 Georgia,serif;color:var(--acc)}
+.badge{font:700 .68rem/1 system-ui,sans-serif;letter-spacing:.06em;padding:4px 8px;border-radius:999px;color:#fff;text-transform:uppercase}
+.b-bas{background:#2e7d32}.b-int{background:#b36b00}.b-ava{background:#b3261e}.b-ded{background:#3b5bb5}.b-ger{background:#0b7a75}
+#cnt{color:var(--mute);font-size:.9rem;margin-left:auto}
+#dots{flex:0 0 auto;display:flex;gap:5px;padding:8px 14px 8px}
+#dots button{flex:1;height:8px;border:0;border-radius:4px;background:var(--line);cursor:pointer;padding:0}
+#dots button.on{background:var(--acc)}
+#dots button.cur{background:var(--hi)}
+.stage{flex:1;min-height:0;position:relative;margin:0 14px;border:1px solid var(--line);border-radius:14px;background:var(--board);overflow:hidden;cursor:pointer;user-select:none;-webkit-user-select:none}
+.sl{--base:clamp(15px,min(2.05vw,3.3vh),30px);font-size:calc(var(--base) * var(--k,1));height:100%;overflow:auto;padding:1.1em 1.4em;display:grid;grid-template-columns:1fr;gap:1em;align-content:center;animation:fade .18s ease}
+@keyframes fade{from{opacity:.25}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.sl{animation:none}}
+@media (min-width:760px) and (min-aspect-ratio:1/1){.sl.two{grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr);align-items:center}}
+.side{min-width:0;display:flex;flex-direction:column;gap:.6em}
+.main{min-width:0}
+.fig{display:block;width:100%;max-width:22em;height:auto;margin:0 auto}
+@media (max-width:759px),(max-aspect-ratio:1/1){.fig{max-height:20vh;max-width:15em}.trail{display:none}}
+.fig .b{fill:var(--chip);stroke:var(--acc);stroke-width:2}
+.fig .o{fill:none;stroke:var(--acc);stroke-width:7}
+.fig .ring{fill:none;stroke:var(--hi);stroke-width:8}
+.fig .e{fill:var(--hi)}
+.fig .x{stroke:var(--hi);stroke-width:1.6;stroke-dasharray:5 4;fill:none}
+.fig .l{stroke:var(--ink);stroke-width:1.2;fill:none}
+.fig .ar{stroke:var(--hi);stroke-width:2;fill:none}
+.fig .gr{fill:var(--line);stroke:var(--mute);stroke-width:1.5}
+.fig text{fill:var(--ink);font:italic 14px Georgia,"Times New Roman",serif}
+.fig text.t{font:12px system-ui,sans-serif;fill:var(--mute)}
+.trail{border-top:1px dashed var(--line);padding-top:.5em;font:.85em/1.5 "Cambria Math","STIX Two Math",Georgia,serif;color:var(--mute)}
+.trail small{display:block;font:.85em system-ui,sans-serif;margin-bottom:.2em}
+.trail div{white-space:nowrap;overflow:hidden}
+.rot{display:flex;gap:.4em;flex-wrap:wrap;margin-bottom:.7em}
+.rot span{font:600 .55em/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:.5em .8em;border-radius:999px;background:var(--chip);color:var(--mute);border:1px solid var(--line)}
+.rot span.on{background:var(--acc);color:var(--board);border-color:var(--acc)}
+.st{font:700 1.2em/1.3 system-ui,sans-serif;margin:0 0 .45em}
+.enun{font:1em/1.55 system-ui,sans-serif;border-left:4px solid var(--acc);padding:.2em 0 .2em .9em;margin:0 0 .5em}
+.eq{font:1.3em/1.75 "Cambria Math","STIX Two Math",Georgia,"Times New Roman",serif;background:var(--bg);border-left:4px solid var(--hi);border-radius:6px;padding:.35em .8em;margin:0 0 .6em;overflow-x:auto;overflow-y:hidden}
+.eq div{white-space:nowrap}
+.res .eq,.eq.res{border-color:var(--acc);background:var(--res);text-align:center;font-size:1.55em}
+.eq .hl,.hl{color:var(--hi);font-weight:700}
+ul.lst{margin:0 0 .6em;padding-left:1.2em;font-size:.95em;line-height:1.55}
+ul.lst li{margin:.3em 0}
+table.tb2{border-collapse:collapse;margin:0 0 .6em;font:.95em/1.5 "Cambria Math",Georgia,serif;width:100%}
+table.tb2 th,table.tb2 td{border:1px solid var(--line);padding:.25em .6em;text-align:center}
+table.tb2 th{background:var(--chip);font:700 .85em system-ui,sans-serif}
+.co{border-left:5px solid;border-radius:8px;padding:.45em .8em;margin:.45em 0 0;font-size:.82em;line-height:1.5}
+.co b{display:block;font:700 .78em system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.15em}
+.co.why{background:var(--why-bg);border-color:var(--why-bd)}.co.why b{color:var(--why-bd)}
+.co.err{background:var(--err-bg);border-color:var(--err-bd)}.co.err b{color:var(--err-bd)}
+.co.real{background:var(--real-bg);border-color:var(--real-bd)}.co.real b{color:var(--real-bd)}
+.co.tip{background:var(--tip-bg);border-color:var(--tip-bd)}.co.tip b{color:var(--tip-bd)}
+/* matemática */
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .15em;line-height:1.2}
+.fr .nu{border-bottom:.07em solid currentColor;padding:0 .2em .05em}
+.fr .de{padding:.05em .2em 0}
+.fr .fr{font-size:.85em}
+.sq{display:inline-flex;align-items:stretch}
+.sq .rb{border-top:.07em solid currentColor;padding:0 .12em;margin-top:.08em}
+.par{position:relative;display:inline-block;vertical-align:middle;padding:0 .5em}
+.par::before,.par::after{content:"";position:absolute;top:-.05em;bottom:-.05em;width:.3em;border:.08em solid currentColor}
+.par::before{left:0;border-right:0;border-radius:.9em 0 0 .9em/50% 0 0 50%}
+.par::after{right:0;border-left:0;border-radius:0 .9em .9em 0/0 50% 50% 0}
+.ev{display:inline-flex;align-items:stretch;vertical-align:middle}
+.ev .evb{position:relative;padding:0 .45em;display:inline-block}
+.ev .evb::before,.ev .evb::after{content:"";position:absolute;top:0;bottom:0;width:.22em;border:.08em solid currentColor}
+.ev .evb::before{left:0;border-right:0}.ev .evb::after{right:0;border-left:0}
+.int{display:inline-flex;align-items:stretch;vertical-align:middle;margin:0 .1em}
+.int .isy{font-size:1.7em;line-height:.9;align-self:center}
+.lim{display:inline-flex;flex-direction:column;justify-content:space-between;font-size:.6em;line-height:1.1;margin-left:.1em;text-align:left}
+.ss{display:inline-flex;flex-direction:column;vertical-align:middle;font-size:.62em;line-height:1.05;margin-left:.05em}
+sub,sup{line-height:0}
+.ctl{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 14px}
+.ctl button{flex:1;padding:.7em;border-radius:12px;border:1px solid var(--acc);background:transparent;color:var(--acc);font:700 1.15rem system-ui,sans-serif;cursor:pointer}
+.ctl button.main{background:var(--acc);color:var(--board)}
+.ctl button:disabled{opacity:.35;cursor:default}
+.hint{flex:0 0 auto;color:var(--mute);font-size:.75rem;text-align:center;max-width:14em}
+@media (max-width:700px){.hint{display:none}.ttl{display:none}.bar{justify-content:space-between}.eq div{white-space:normal}.tb button{padding:6px 9px}}
+body.pres .bar,body.pres .hd2{display:none}
+body.pres .stage{margin:0;border-radius:0;border:0}
+body.pres .ctl{position:absolute;left:0;right:0;bottom:0;padding:6px 14px;opacity:.55}
+body.pres .ctl:hover,body.pres .ctl:focus-within{opacity:1}
+body.pres #dots{padding:6px 14px 2px}
+#idx{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+#idx[hidden]{display:none}
+.panel{background:var(--board);border:1px solid var(--line);border-radius:14px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:16px 18px}
+.panel h3{margin:.4em 0 .5em;font:700 1.05rem Georgia,serif;color:var(--acc)}
+.panel .g{display:flex;flex-wrap:wrap;gap:8px}
+.panel .g button{border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:9px 13px;border-radius:10px;font:600 .95rem system-ui,sans-serif;cursor:pointer;text-align:left}
+.panel .g button.cur{background:var(--acc);border-color:var(--acc);color:var(--board)}
+.panel .x{float:right;border:1px solid var(--acc);background:transparent;color:var(--acc);border-radius:999px;padding:5px 12px;cursor:pointer;font-weight:600}
+
+/* ===== celular ===== */
+.stage{touch-action:pan-y}
+button{touch-action:manipulation}
+.lb{display:inline}
+.rot span::before{content:none}
+.wd{margin:.2em 0 .6em}
+.wd .row{display:grid;grid-template-columns:5.2em 1fr 4.6em;gap:.5em;align-items:center;margin:.25em 0;font-size:.9em}
+.wd .row b{font-weight:700}
+.wd input[type=range]{width:100%;height:2.2em;accent-color:var(--acc)}
+.wd .out{background:var(--bg);border-left:4px solid var(--hi);border-radius:6px;padding:.45em .8em;margin:.5em 0;font:1.05em/1.6 "Cambria Math",Georgia,serif}
+.wd .bar2{display:flex;height:1.6em;border-radius:8px;overflow:hidden;margin:.4em 0;font:700 .7em system-ui,sans-serif;color:#fff}
+.wd .bar2 i{display:flex;align-items:center;justify-content:center;font-style:normal;min-width:0;white-space:nowrap}
+.wd svg{display:block;width:100%;height:auto;max-height:26vh;margin:0 auto}
+.wd svg text{fill:var(--ink);font:italic 12px Georgia,serif}
+.wd svg .gh{fill:var(--hi)}.wd svg .ax{stroke:var(--hi);stroke-width:1.6;stroke-dasharray:5 4}.wd svg .ln{stroke:var(--ink);stroke-width:1.2}
+.rbox{position:relative;height:clamp(220px,33vh,300px);overflow:hidden;border:1px solid var(--line);border-radius:12px;background:linear-gradient(var(--bg),var(--board))}
+.ramp{position:absolute;left:4%;top:6%;width:84%;transform-origin:0 0;transition:transform .2s}
+.ramp .ln{position:relative;height:2.4em;margin-bottom:.15em;background:var(--chip);border-bottom:3px solid var(--mute);border-radius:3px}
+.ramp .ln .nm{position:absolute;left:38%;top:.1em;font:600 .62em system-ui,sans-serif;color:var(--mute)}
+.ramp .bd{position:absolute;left:0;bottom:0;width:2.1em;height:2.1em;border-radius:50%;border:2px solid var(--acc);background:var(--board)}
+.ramp .bd.ring{border-width:.42em;background:transparent}
+.ramp .bd.sph{background:radial-gradient(circle at 35% 30%,var(--board),var(--acc))}
+.ramp .bd::after{content:"";position:absolute;left:50%;top:6%;width:2px;height:44%;background:var(--hi);transform:translateX(-50%)}
+.rctl{display:flex;gap:.6em;align-items:center;margin:.5em 0;flex-wrap:wrap}
+.rctl label{flex:1 1 9em;font-size:.9em}
+.rctl button{padding:.6em 1em;border-radius:12px;border:1px solid var(--acc);background:var(--acc);color:var(--board);font:700 1em system-ui,sans-serif;cursor:pointer}
+.rctl button.g{background:transparent;color:var(--acc)}
+.rtimes{display:grid;grid-template-columns:repeat(3,1fr);gap:.4em;font-size:.85em;text-align:center}
+.rtimes div{border:1px solid var(--line);border-radius:10px;padding:.35em;background:var(--chip)}
+.rtimes div.w{border-color:var(--hi);background:var(--tip-bg)}
+@media (min-width:760px) and (min-aspect-ratio:1/1){.rbox{height:clamp(240px,44vh,360px)}.wd.in{display:grid;grid-template-columns:1fr 1fr;gap:1.2em;align-items:center}}
+@media (max-width:700px),(max-aspect-ratio:1/1){
+ .app{--pad:8px}
+ .sl{--base:clamp(16px,4.5vw,20px);padding:.8em .9em;gap:.7em;align-content:start}
+ .stage{margin:0 8px;border-radius:12px}
+ .bar{padding:6px 10px;gap:8px}
+ .logo{height:28px}
+ .tb{margin-left:auto;gap:6px}
+ .tb button{padding:8px 12px;font-size:1rem;min-width:44px;min-height:40px}
+ .lb{display:none}
+ .hd2{padding:6px 12px 0;gap:8px}
+ .hd2 h2{font-size:.95rem}
+ #cnt{font-size:.78rem}
+ #dots{padding:6px 12px}
+ #dots button{height:9px}
+ .fig{max-height:30vh;max-width:100%;width:auto}
+ .fig text{font-size:15px}
+ .rot{flex-wrap:nowrap;gap:4px;margin-bottom:.5em}
+ .rot span{flex:0 0 auto;font-size:.5em;padding:.6em .8em}
+ .rot span:not(.on){font-size:0;padding:0;display:inline-flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;border-radius:50%}
+ .rot span:not(.on)::before{content:attr(data-n);font-size:.62rem}
+ .st{font-size:1.15em}
+ .eq{font-size:1.2em;padding:.3em .6em;line-height:1.7}
+ .res .eq,.eq.res{font-size:1.35em}
+ .co{font-size:.88em}
+ ul.lst,table.tb2{font-size:.92em}
+ .ctl{padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));gap:8px}
+ .ctl button{min-height:56px;font-size:1.05rem;border-radius:14px;flex:1 1 0}
+ .ctl #next{flex:2 1 0}
+ .ctl #prev{flex:1 1 0}
+ .ctl #prev{font-size:0}.ctl #prev::before{content:"←";font-size:1.6rem}
+ #idx{align-items:flex-end;padding:0}
+ .panel{max-width:none;border-radius:16px 16px 0 0;max-height:80vh;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}
+ .panel .g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .panel .g button{padding:12px;font-size:.9rem;min-height:48px}
+}
+@media (max-height:520px){
+ .bar{padding:3px 10px}.ttl{display:none}.logo{height:22px}
+ .hd2{padding-top:2px}.hd2 h2{font-size:.85rem}
+ .stage{margin:0 8px}
+ .sl{--base:clamp(13px,3.6vh,18px)}
+ .ctl{padding:4px 10px}.ctl button{min-height:40px;padding:.3em}
+ #dots{padding:3px 12px}
+ .rbox{height:56vh}
+}
+
+/* ===== botões de navegação sutis ===== */
+.ctl{position:fixed !important;left:0;right:0;bottom:0;padding:0 18px calc(14px + env(safe-area-inset-bottom,0px)) !important;justify-content:space-between;pointer-events:none;background:none !important;z-index:6}
+.ctl button,.ctl #prev,.ctl #next{pointer-events:auto;flex:0 0 auto !important;width:42px !important;height:42px !important;min-height:0 !important;padding:0 !important;border-radius:50% !important;font:400 1.7rem/1 system-ui,sans-serif !important;display:flex;align-items:center;justify-content:center;border:1px solid var(--line) !important;background:var(--board) !important;color:var(--mute) !important;opacity:.35;transition:opacity .15s}
+.ctl button::before{content:none !important}
+.ctl button:hover,.ctl button:focus-visible,.ctl button:active{opacity:.95}
+.ctl button:disabled{opacity:.12 !important}
+.stage{margin-bottom:10px}
+.sl{padding-bottom:3.2em}
+body.pres .ctl{position:fixed !important;opacity:1}
+body.pres .stage{margin-bottom:0}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="bar">
+<img class="logo" alt="SENAI" src="data:image/png;base64,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">
+<div class="ttl"><b>Apoio Aula 12 / Momento de Inércia</b><span>Física Aplicada · Tecnólogo em Automação Industrial · 3º Período · Aula 12 · Prof. Marcos Monteiro</span></div>
+<div class="tb"><button id="bi" type="button" aria-label="Índice"><span class="ic">☰</span><span class="lb"> Índice</span></button><button id="theme" type="button" aria-label="Alternar tema"></button><button id="fs" type="button" aria-label="Tela cheia"></button></div>
+</header>
+<div class="hd2"><h2 id="dt"></h2><span class="badge" id="bd"></span><span id="cnt"></span></div>
+<div id="dots"></div>
+<main class="stage" id="stage" aria-live="polite"></main>
+<div class="ctl"><button id="prev" type="button" aria-label="Anterior" title="Anterior">‹</button><button id="next" class="main" type="button" aria-label="Próximo" title="Próximo">›</button></div>
+</div>
+<div id="idx" hidden><div class="panel" id="panel"></div></div>
+<script>
+/* ===== Renderizador de matemática: \f{a}{b} fração · \r{a} raiz · \h{a} destaque · \p{a} parênteses altos
+   \e{expr}{inf}{sup} colchete avaliado · \I{inf}{sup} integral · ^{x} _{x} (ambos juntos empilham) ===== */
+function grp(s,i){let dep=0,j=i;for(;j<s.length;j++){if(s[j]==='{')dep++;else if(s[j]==='}'){dep--;if(dep===0)break}}return [s.slice(i+1,j),j+1]}
+const ESC={'<':'&lt;','>':'&gt;','&':'&amp;'};
+function fx(s){
+  let o='',i=0;
+  while(i<s.length){
+    const c=s[i];
+    if(c==='\\'){
+      const k=s[i+1];
+      if(k==='f'){const [a,j]=grp(s,i+2),[b,j2]=grp(s,j);o+='<span class="fr"><span class="nu">'+fx(a)+'</span><span class="de">'+fx(b)+'</span></span>';i=j2;continue}
+      if(k==='r'){const [a,j]=grp(s,i+2);o+='<span class="sq">√<span class="rb">'+fx(a)+'</span></span>';i=j;continue}
+      if(k==='h'){const [a,j]=grp(s,i+2);o+='<span class="hl">'+fx(a)+'</span>';i=j;continue}
+      if(k==='p'){const [a,j]=grp(s,i+2);o+='<span class="par">'+fx(a)+'</span>';i=j;continue}
+      if(k==='e'){const [a,j]=grp(s,i+2),[lo,j2]=grp(s,j),[hi,j3]=grp(s,j2);o+='<span class="ev"><span class="evb">'+fx(a)+'</span><span class="lim"><i>'+fx(hi)+'</i><i>'+fx(lo)+'</i></span></span>';i=j3;continue}
+      if(k==='I'){const [lo,j]=grp(s,i+2),[hi,j2]=grp(s,j);o+='<span class="int"><span class="isy">∫</span><span class="lim"><i>'+fx(hi)+'</i><i>'+fx(lo)+'</i></span></span>';i=j2;continue}
+    }
+    if((c==='^'||c==='_')&&s[i+1]==='{'){
+      const [a,j]=grp(s,i+1),c2=c==='^'?'_':'^';
+      if(s[j]===c2&&s[j+1]==='{'){const [b,j2]=grp(s,j+1);const sup=c==='^'?a:b,sub=c==='^'?b:a;o+='<span class="ss"><i>'+fx(sup)+'</i><i>'+fx(sub)+'</i></span>';i=j2;continue}
+      o+=(c==='^'?'<sup>':'<sub>')+fx(a)+(c==='^'?'</sup>':'</sub>');i=j;continue;
+    }
+    o+=ESC[c]||c;i++;
+  }
+  return o;
+}
+const lines=a=>a.map(l=>'<div>'+fx(l)+'</div>').join('');
+/* ===== figuras ===== */
+const SV=b=>'<svg class="fig" viewBox="0 0 300 130" role="img" aria-label="Ilustração">'+b+'</svg>';
+const T=(x,y,s,c)=>'<text x="'+x+'" y="'+y+'"'+(c?' class="'+c+'"':'')+' text-anchor="middle">'+s+'</text>';
+const DOT=(x,y,c)=>'<circle cx="'+x+'" cy="'+y+'" r="4" fill="'+c+'"/>';
+const RD='<rect class="b" x="40" y="58" width="220" height="12"/>';
+const HD='<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--hi)"/></marker></defs>';
+const AR=(x1,y1,x2,y2)=>'<path class="ar" d="M'+x1+' '+y1+'L'+x2+' '+y2+'" marker-end="url(#ah)"/>';
+/* rampa descendo para a direita: topo (20,30) base (270,110) */
+const RAMP='<path class="gr" d="M20 30L270 110L20 110Z"/><path class="l" d="M20 30V110M12 30H28M12 110H28"/>'+T(8,74,'h')+'<path class="l" d="M250 110A20 20 0 0 0 251 104"/>'+T(236,104,'θ');
+
+/* ===== simuladores (funcionam por toque no celular) ===== */
+const nf=(n,d=2)=>n.toFixed(d).replace('.',',');
+const WID={
+inertia(w){
+  w.classList.add('in');
+  w.innerHTML='<div class="vis"><svg viewBox="0 0 300 80" aria-label="Duas partículas no eixo"></svg><div class="bar2" id="wb"></div><div class="out" id="wo"></div></div><div class="sliders">'
+   +'<div class="row"><b>m₁</b><input type="range" id="m1" min="1" max="5" step="0.5" value="2"><span id="v_m1"></span></div>'
+   +'<div class="row"><b>r₁</b><input type="range" id="r1" min="0.1" max="1" step="0.05" value="0.5"><span id="v_r1"></span></div>'
+   +'<div class="row"><b>m₂</b><input type="range" id="m2" min="1" max="5" step="0.5" value="3"><span id="v_m2"></span></div>'
+   +'<div class="row"><b>r₂</b><input type="range" id="r2" min="0.1" max="1" step="0.05" value="0.8"><span id="v_r2"></span></div></div>';
+  const g=id=>w.querySelector('#'+id),v=id=>+g(id).value;
+  function up(){
+    const m1=v('m1'),r1=v('r1'),m2=v('m2'),r2=v('r2'),I1=m1*r1*r1,I2=m2*r2*r2,I=I1+I2;
+    g('v_m1').textContent=nf(m1,1)+' kg';g('v_m2').textContent=nf(m2,1)+' kg';g('v_r1').textContent=nf(r1)+' m';g('v_r2').textContent=nf(r2)+' m';
+    const X=r=>30+r*250;
+    w.querySelector('svg').innerHTML='<line class="ax" x1="30" y1="6" x2="30" y2="74"/><line class="ln" x1="30" y1="40" x2="'+Math.max(X(r1),X(r2))+'" y2="40"/>'
+      +'<circle class="gh" cx="'+X(r1)+'" cy="40" r="'+(5+m1*2.4)+'" opacity=".85"/><circle class="gh" cx="'+X(r2)+'" cy="40" r="'+(5+m2*2.4)+'" fill="var(--acc)"/>'
+      +'<text x="'+X(r1)+'" y="14" text-anchor="middle">m₁</text><text x="'+X(r2)+'" y="76" text-anchor="middle">m₂</text><text x="36" y="12">eixo</text>';
+    g('wb').innerHTML='<i style="width:'+(I1/I*100)+'%;background:var(--hi)">I₁ '+nf(I1/I*100,0)+'%</i><i style="width:'+(I2/I*100)+'%;background:var(--acc)">I₂ '+nf(I2/I*100,0)+'%</i>';
+    g('wo').innerHTML='I₁ = '+nf(m1,1)+'·'+nf(r1)+'² = '+nf(I1)+'<br>I₂ = '+nf(m2,1)+'·'+nf(r2)+'² = '+nf(I2)+'<br><b style="color:var(--hi)">I = '+nf(I)+' kg·m²</b><br><small style="font:.8em system-ui">m₂ tem '+nf(m2/(m1+m2)*100,0)+'% da massa e '+nf(I2/I*100,0)+'% do I</small>';
+  }
+  w.querySelectorAll('input').forEach(x=>x.oninput=up);up();
+},
+race(w){
+  const C=[['anel',1,'ring'],['disco',.5,''],['esfera',.4,'sph']];
+  w.innerHTML='<div class="rbox"><div class="ramp" id="rp">'+C.map(c=>'<div class="ln"><span class="nm">'+c[0]+' · c = '+(c[1]===1?'1':c[1]===.5?'½':'⅖')+'</span><div class="bd '+c[2]+'"></div></div>').join('')+'</div></div>'
+   +'<div class="rctl"><label>Ângulo da rampa: <b id="ra">20</b>°<input type="range" id="rs" min="10" max="40" value="20"></label><button id="rg" type="button">▶ Soltar</button><button id="rl" class="g" type="button">🐢 Lento: sim</button></div>'
+   +'<div class="rtimes" id="rt"></div>';
+  const rb=w.querySelector('.rbox'),rp=w.querySelector('#rp'),bds=[...rp.querySelectorAll('.bd')];let slow=true;
+  const set=()=>{const th=+w.querySelector('#rs').value;w.querySelector('#ra').textContent=th;rp.style.transform='rotate('+th+'deg)';return th};
+  function reset(){cancelAnimationFrame(RAF);bds.forEach(b=>{b.style.left='0px';b.style.transform='rotate(0deg)'});w.querySelector('#rt').innerHTML=C.map(c=>'<div>'+c[0]+'<br>—</div>').join('')}
+  w.querySelector('#rs').oninput=()=>{set();reset()};
+  w.querySelector('#rl').onclick=e=>{slow=!slow;e.target.textContent='🐢 Lento: '+(slow?'sim':'não')};
+  w.querySelector('#rg').onclick=()=>{
+    reset();const th=set()*Math.PI/180,g=9.8,L=2.0;
+    const a=C.map(c=>g*Math.sin(th)/(1+c[1])),T=a.map(x=>Math.sqrt(2*L/x));
+    const len=rp.clientWidth-bds[0].offsetWidth,rad=bds[0].offsetWidth/2,f=slow?0.5:1,t0=performance.now();
+    function fr(now){
+      const t=(now-t0)/1000*f;let all=true;
+      bds.forEach((b,k)=>{const x=Math.min(.5*a[k]*t*t,L);if(x<L)all=false;const px=x/L*len;b.style.left=px+'px';b.style.transform='rotate('+(px/rad*57.3)+'deg)'});
+      if(!all)RAF=requestAnimationFrame(fr);
+      else{const ord=T.map((t,k)=>k).sort((p,q)=>T[p]-T[q]);
+        w.querySelector('#rt').innerHTML=C.map((c,k)=>'<div'+(ord[0]===k?' class="w"':'')+'>'+['🥇','🥈','🥉'][ord.indexOf(k)]+' '+c[0]+'<br>'+nf(T[k])+' s</div>').join('')}
+    }
+    RAF=requestAnimationFrame(fr);
+  };
+  const rw=Math.max(160,Math.min(rb.clientWidth*.84,(rb.clientHeight-100)/Math.sin(40*Math.PI/180)));rp.style.width=rw+'px';rp.style.left=Math.max(8,(rb.clientWidth-rw)/2)+'px';
+  set();reset();
+}};
+
+const R=String.raw;
+const FQ1=SV('<path class="x" d="M60 12V118"/>'+T(60,9,'eixo','t')+'<path class="l" d="M60 62H180"/><circle class="e" cx="135" cy="62" r="9"/><circle class="e" cx="180" cy="62" r="11"/>'+T(135,44,'m₁')+T(180,42,'m₂')+'<path class="l" d="M60 92H135M60 87V97M135 87V97"/>'+T(98,86,'r₁ = 0,50 m')+'<path class="l" d="M60 112H180M60 107V117M180 107V117"/>'+T(120,127,'r₂ = 0,80 m'));
+const FQ2=SV('<circle class="b" cx="150" cy="68" r="50"/>'+DOT(150,68,'var(--ink)')+'<path class="l" d="M150 68H200"/>'+T(176,62,'R')+HD+'<path class="ar" d="M112 24A50 50 0 0 1 188 24" marker-end="url(#ah)"/>'+T(150,14,'ω')+T(150,126,'eixo central, perpendicular ao disco','t'));
+const FQ3=SV(HD+RAMP+'<circle class="b" cx="64" cy="30" r="14"/><path class="l" d="M52 26A14 14 0 0 1 64 17"/>'+T(110,22,'esfera','t')+AR(150,62,196,77)+T(190,66,'v','')) ;
+const FQ4=SV(HD+'<circle class="b" cx="110" cy="58" r="34"/>'+DOT(110,58,'var(--ink)')+'<path class="l" d="M110 58H144"/>'+T(127,52,'R')+'<path class="l" d="M144 58V112"/>'+AR(144,76,144,112)+T(162,100,'T')+'<path class="ar" d="M82 24A40 40 0 0 1 138 24" marker-end="url(#ah)"/>'+T(110,12,'α'));
+const FQ5=SV(HD+RAMP+'<circle class="b" cx="125" cy="47" r="16"/>'+DOT(125,47,'var(--ink)')+AR(125,47,125,80)+T(142,86,'Mg')+AR(125,47,136,13)+T(150,16,'N')+AR(120,62,86,51)+T(76,46,'f'));
+const FQ6=SV('<circle class="o" cx="60" cy="56" r="30" style="stroke-width:6"/><circle class="b" cx="150" cy="56" r="30"/><circle class="b" cx="240" cy="56" r="30"/><ellipse class="l" cx="240" cy="56" rx="30" ry="9"/>'+T(60,106,'anel','t')+T(60,122,'c = 1','t')+T(150,106,'disco','t')+T(150,122,'c = ½','t')+T(240,106,'esfera','t')+T(240,122,'c = ⅖','t'));
+
+const LISTA=[
+{g:'Lista 12',name:'Visão geral',badge:'Roteiro',bc:'b-ger',rot:false,fig:'',steps:[
+ {k:'ferr',tag:'Aula 12',t:'O que a Lista 12 cobra',
+  ul:[R`\h{Q01–Q02 · Básico:} definição de I, soma I = ∑ m r² e a tabela de I (disco). Energia cinética de rotação.`,
+      R`\h{Q03–Q04 · Intermediário:} conservação de energia no rolamento e a 2ª Lei da rotação, ∑τ = Iα.`,
+      R`\h{Q05–Q06 · Avançado:} demonstrar a_{cm} com translação + rotação, calcular o atrito mínimo e comparar corpos pelo coeficiente c.`],
+  why:R`Cada nível acrescenta uma ideia: primeiro \h{calcular} I, depois \h{usar} I em energia e torque, por fim \h{comparar e criticar} o modelo.`,
+  tip:R`Assista com a lista ao lado: resolva a questão no papel, clique e compare cada passo.`},
+ {k:'ferr',tag:'Aula 12',t:'Roteiro de 5 passos (vale para toda questão)',
+  ul:[R`\h{1 · Dados:} escreva o que é dado, converta para o SI e diga o que se pede.`,
+      R`\h{2 · Ferramenta:} escolha a lei (energia? torque? soma de I?) e justifique.`,
+      R`\h{3 · Conta:} desenvolva em símbolos, só depois substitua os números.`,
+      R`\h{4 · Resultado:} número com unidade, destacado.`,
+      R`\h{5 · Conferência:} unidade, ordem de grandeza e um caso-limite.`],
+  why:R`Os cinco passos aparecem em todas as questões, sempre na mesma ordem. Repetir o roteiro vira hábito e reduz os erros de distração.`,
+  tip:R`Mostrar o raciocínio facilita a correção e ajuda você a achar onde errou.`},
+ {k:'ferr',tag:'Aula 12',t:'Translação e rotação: a tradução que resolve quase tudo',
+  tb:{h:['Translação','Rotação'],r:[[R`massa \h{m}`,R`momento de inércia \h{I}`],[R`força F`,R`torque τ`],[R`aceleração a`,R`aceleração angular α`],[R`velocidade v`,R`velocidade angular ω`],[R`F = m a`,R`τ = I α`],[R`K = \f{1}{2}m v^{2}`,R`K = \f{1}{2}I ω^{2}`]]},
+  why:R`Tudo o que você sabe de movimento em linha reta tem um gêmeo na rotação. Troque \h{m} por \h{I}, F por τ, a por α, v por ω e a fórmula continua valendo.`,
+  real:R`Dimensionar um motor de esteira: o torque necessário para acelerar o rotor é τ = Iα, igual a F = ma em linha reta.`}
+]},
+{g:'Lista 12',name:'Q01 · Definição e partículas',badge:'Básico',bc:'b-bas',rot:true,fig:FQ1,steps:[
+ {k:'enun',t:'Enunciado',enun:R`Defina \h{momento de inércia} e explique por que ele depende não apenas da massa total, mas também de \h{como a massa está distribuída} em relação ao eixo. Em seguida, calcule I de duas partículas: \h{m₁ = 2,0 kg} a \h{0,50 m} e \h{m₂ = 3,0 kg} a \h{0,80 m} do eixo.`,
+  why:R`Duas partes: uma explicação (conceito) e uma conta. Leia as duas antes de começar.`},
+ {k:'dados',t:'O que é dado e o que se pede',eq:[R`m_{1} = 2,0 kg  em  r_{1} = 0,50 m`,R`m_{2} = 3,0 kg  em  r_{2} = 0,80 m`,R`I = ?   (em kg·m^{2})`],
+  why:R`Tudo já está no SI (kg e m); não há conversão a fazer.`,err:R`Se a prova der cm ou g, converta antes: 50 cm = 0,50 m.`},
+ {k:'ferr',t:'Definição de momento de inércia',eq:[R`I = ∑ m_{i} r_{i}^{2}`,R`unidade: kg·m^{2}`],
+  why:R`I mede a \h{resistência de um corpo a mudar sua rotação} em torno de um eixo. É a "massa da rotação": quanto maior I, mais torque é preciso para a mesma aceleração angular (τ = Iα).`,
+  real:R`Patinador girando: braços abertos, I grande, gira devagar. Braços fechados, I pequeno, gira rápido.`},
+ {k:'ferr',t:'Por que a distribuição importa? (veja as deduções)',eq:[R`Anel:  I = MR^{2}        Disco:  I = \f{1}{2}MR^{2}`,R`Haste, eixo no centro:  I = \f{ML^{2}}{12}`,R`Haste, eixo na ponta:  I = \f{ML^{2}}{3}  (4 vezes maior)`],
+  why:R`Cada partícula contribui com m·r²: a distância entra \h{ao quadrado}. Mesmo M e R, o anel (massa toda na borda) tem o dobro de I do disco. Mesma haste, mesma massa: levar o eixo do centro para a ponta multiplica I por 4.`,
+  real:R`Em um rotor de motor, massa longe do eixo demora mais para acelerar e para parar.`},
+ {k:'conta',t:'Partícula 1',eq:[R`I_{1} = m_{1} r_{1}^{2}`,R`I_{1} = 2,0 · (0,50)^{2} = 2,0 · 0,25 = 0,50 kg·m^{2}`],why:R`Eleve a distância ao quadrado antes de multiplicar pela massa: 0,50² = 0,25.`},
+ {k:'conta',t:'Partícula 2',eq:[R`I_{2} = m_{2} r_{2}^{2}`,R`I_{2} = 3,0 · (0,80)^{2} = 3,0 · 0,64 = 1,92 kg·m^{2}`],why:R`0,80² = 0,64. Esta partícula está mais longe e pesa mais, então domina a soma.`},
+ {k:'res',t:'Somar',eq:[R`I = I_{1} + I_{2} = 0,50 + 1,92`,R`\h{I = 2,42 kg·m^{2}}`],why:R`Momentos de inércia em torno do mesmo eixo \h{se somam}. É uma soma de escalares, sem direção.`},
+ {k:'conf',t:'A distância pesa mais que a massa',eq:[R`massa em m₂:  \f{3,0}{5,0} = 60%`,R`I em m₂:  \f{1,92}{2,42} ≈ 79%`,R`troca de posições:  2,0·0,64 + 3,0·0,25 = 2,03 kg·m^{2}`],
+  why:R`m₂ tem 60% da massa e quase 80% do I. Trocando só as posições, I cai de 2,42 para 2,03: mesma massa, outra distribuição, outro I.`,
+  err:R`Somar as massas e usar uma distância média (5,0 · 0,65² ≈ 2,11) ou esquecer o quadrado (2,0·0,5 + 3,0·0,8 = 3,4).`},
+ {k:'sim',t:'Teste você: mexa nas massas e nas distâncias',widget:'inertia',why:R`Arraste os controles. Dobrar a distância quadruplica a contribuição de uma partícula; dobrar a massa só dobra. Volte a 2,0 kg / 0,50 m e 3,0 kg / 0,80 m para reencontrar 2,42.`,real:R`É o que o projetista faz ao escolher onde colocar o contrapeso de um rotor: pequenas mudanças de distância mudam muito o I.`}
+]},
+{g:'Lista 12',name:'Q02 · Disco: I e energia',badge:'Básico',bc:'b-bas',rot:true,fig:FQ2,steps:[
+ {k:'enun',t:'Enunciado',enun:R`Disco sólido homogêneo de \h{M = 4,0 kg} e \h{R = 0,30 m} gira em torno do eixo central com \h{ω = 10 rad/s}. Com a fórmula tabelada \h{I = ½MR²}, calcule: (a) o momento de inércia; (b) a energia cinética de rotação.`},
+ {k:'dados',t:'Dados',eq:[R`M = 4,0 kg,   R = 0,30 m,   ω = 10 rad/s`,R`pedem:  (a) I   (b) K_{rot}`],why:R`ω já está em rad/s, a unidade correta para as fórmulas.`,err:R`Se vier em rpm: ω = \f{2π n}{60}. Exemplo: 95,5 rpm ≈ 10 rad/s.`},
+ {k:'ferr',t:'Duas fórmulas',eq:[R`I = \f{1}{2}MR^{2}`,R`K_{rot} = \f{1}{2}I ω^{2}`],why:R`O \h{½} do disco vem da integral (veja a dedução do disco). A energia de rotação tem a forma de ½mv² com m trocado por I e v por ω.`},
+ {k:'conta',t:'(a) Momento de inércia',eq:[R`I = \f{1}{2}(4,0)(0,30)^{2} = \f{1}{2}(4,0)(0,09) = \f{0,36}{2}`,R`\h{I = 0,18 kg·m^{2}}`],why:R`0,30² = 0,09. Eleve só o raio ao quadrado, não a massa.`,err:R`Esquecer o quadrado (usar 0,30 em vez de 0,09).`},
+ {k:'res',t:'(b) Energia cinética de rotação',eq:[R`K_{rot} = \f{1}{2}(0,18)(10)^{2} = \f{1}{2}(0,18)(100)`,R`\h{K_{rot} = 9,0 J}`],why:R`Aqui o ω também é elevado ao quadrado: 10² = 100.`,real:R`Volante de inércia de uma prensa guarda energia ½Iω² e a devolve no golpe. Dobrar ω quadruplica a energia guardada.`},
+ {k:'conf',t:'Por outro caminho',eq:[R`v_{borda} = ωR = 10 · 0,30 = 3,0 m/s`,R`K = \f{1}{4}M v_{borda}^{2} = \f{1}{4}(4,0)(3,0)^{2} = 9,0 J ✓`],why:R`Com I = ½MR² resulta K = ¼M(ωR)². Mesmo valor por duas contas independentes. Para ter ideia: 9 J elevam 1 kg a cerca de 0,92 m.`}
+]},
+{g:'Lista 12',name:'Q03 · Esfera na rampa',badge:'Intermediário',bc:'b-int',rot:true,fig:FQ3,steps:[
+ {k:'enun',t:'Enunciado',enun:R`Esfera sólida homogênea (\h{I = ⅖MR²}) parte do repouso no topo de uma rampa de \h{h = 1,2 m} e \h{rola sem deslizar} até a base. Por conservação de energia (potencial vira translação mais rotação), determine \h{v_{cm}} na base. Use \h{g = 9,8 m/s²}.`},
+ {k:'dados',t:'Dados',eq:[R`h = 1,2 m,   g = 9,8 m/s^{2},   I = \f{2}{5}MR^{2}`,R`v_{0} = 0,   ω_{0} = 0   (parte do repouso)`,R`pede-se:  v_{cm} na base`],why:R`M e R não foram dados. Isso é pista: eles devem cancelar no final.`},
+ {k:'ferr',t:'Ferramenta: energia',eq:[R`E_{inicial} = E_{final}`,R`M g h = \f{1}{2}M v^{2} + \f{1}{2}I ω^{2}`],why:R`Rolando sem deslizar, o ponto de contato fica parado por um instante: o atrito estático não realiza trabalho nem dissipa energia. A energia mecânica se conserva.`,err:R`Não use só ½Mv²: a esfera também gira, e girar custa energia.`},
+ {k:'ferr',t:'Condição de rolamento',eq:[R`ω = \f{v}{R}`],why:R`Sem deslizar, o centro avança v = ωR. Isso une as duas energias em uma só variável, v.`,real:R`Pneu sem derrapar: a velocidade do carro é ω·R da roda.`},
+ {k:'conta',t:'Energia de rotação em função de v',eq:[R`\f{1}{2}I ω^{2} = \f{1}{2} · \f{2}{5}MR^{2} · \f{v^{2}}{R^{2}} = \f{1}{5}M v^{2}`],why:R`O R² cancela: por isso o raio não precisa ser dado.`},
+ {k:'conta',t:'Juntar as energias',eq:[R`\f{1}{2} + \f{1}{5} = \f{5}{10} + \f{2}{10} = \f{7}{10}`,R`M g h = \f{7}{10}M v^{2}`],why:R`M aparece em todos os termos e cancela.`},
+ {k:'conta',t:'Isolar v',eq:[R`g h = \f{7}{10}v^{2}`,R`v^{2} = \f{10}{7}g h`,R`v = \r{\f{10 g h}{7}}`]},
+ {k:'res',t:'Substituir os números',eq:[R`v^{2} = \f{10 · 9,8 · 1,2}{7} = \f{117,6}{7} = 16,8`,R`\h{v ≈ 4,1 m/s}`]},
+ {k:'conf',t:'Compare com um bloco',eq:[R`bloco sem atrito:  v = \r{2gh} = \r{23,5} ≈ 4,85 m/s`,R`esfera:  4,1 m/s  <  4,85 m/s ✓`,R`parte da energia em rotação:  \f{\f{1}{5}}{\f{7}{10}} = \f{2}{7} ≈ 29%`],
+  why:R`A esfera é mais lenta porque 2/7 da energia virou rotação. Se o resultado desse maior que 4,85, haveria erro.`,err:R`Erro nº 1: usar M g h = ½Mv² (dá 4,85 m/s). Erro nº 2: esquecer ω = v/R.`,real:R`Vale para bola de boliche, rolamento de esferas e rolos de esteira.`}
+]}
+];
+
+LISTA.push(
+{g:'Lista 12',name:'Q04 · Polia e torque',badge:'Intermediário',bc:'b-int',rot:true,fig:FQ4,steps:[
+ {k:'enun',t:'Enunciado',enun:R`Polia em forma de disco sólido (\h{I = ½MR²}), \h{M = 2,0 kg}, \h{R = 0,10 m}, com um fio enrolado na borda. Uma tração constante \h{T = 5,0 N} age no fio e faz a polia girar do repouso, sem atrito no eixo. Pela 2ª Lei da rotação (\h{∑τ = Iα}), calcule: (a) α; (b) o tempo para atingir \h{ω = 20 rad/s}.`},
+ {k:'dados',t:'Dados',eq:[R`M = 2,0 kg,   R = 0,10 m,   T = 5,0 N`,R`ω_{0} = 0,   ω = 20 rad/s`,R`pedem:  (a) α   (b) t`],why:R`Unidades já no SI.`},
+ {k:'ferr',t:'Ferramenta: 2ª Lei na rotação',eq:[R`∑τ = I α`,R`τ = T · R`],why:R`O fio é tangente à borda, então a força é perpendicular ao raio e o braço é R. Só a tração gera torque: peso e normal passam pelo eixo (braço zero) e o eixo não tem atrito.`,err:R`τ = T·R só vale com o fio tangente. Em outro ângulo entra o seno.`},
+ {k:'conta',t:'Momento de inércia da polia',eq:[R`I = \f{1}{2}MR^{2} = \f{1}{2}(2,0)(0,10)^{2} = \f{1}{2}(2,0)(0,010)`,R`I = 0,010 kg·m^{2}`]},
+ {k:'conta',t:'Torque da tração',eq:[R`τ = T R = 5,0 · 0,10`,R`τ = 0,50 N·m`]},
+ {k:'res',t:'(a) Aceleração angular',eq:[R`α = \f{τ}{I} = \f{0,50}{0,010}`,R`\h{α = 50 rad/s^{2}}`],why:R`É o análogo de a = F/m.`},
+ {k:'res',t:'(b) Tempo para ω = 20 rad/s',eq:[R`ω = ω_{0} + α t`,R`t = \f{ω − ω_{0}}{α} = \f{20}{50}`,R`\h{t = 0,40 s}`],why:R`Movimento angular uniformemente variado: mesma forma de v = v₀ + at.`},
+ {k:'conf',t:'Por energia',eq:[R`θ = \f{1}{2}α t^{2} = \f{1}{2}(50)(0,40)^{2} = 4,0 rad`,R`W = τ θ = 0,50 · 4,0 = 2,0 J`,R`K = \f{1}{2}I ω^{2} = \f{1}{2}(0,010)(20)^{2} = 2,0 J ✓`],why:R`O trabalho do torque é igual à energia cinética ganha. Dois caminhos, mesmo resultado.`,err:R`Usar I = MR² (anel) daria α = 25 rad/s² e t = 0,80 s. Confira sempre qual é o corpo.`,real:R`Guincho e polia de correia: τ/I diz o quão rápido o conjunto acelera.`}
+]},
+{g:'Lista 12',name:'Q05 · Cilindro: aceleração e atrito',badge:'Avançado',bc:'b-ava',rot:true,fig:FQ5,steps:[
+ {k:'enun',t:'Enunciado',enun:R`Cilindro sólido homogêneo (\h{I = ½MR²}) rola sem deslizar numa rampa de inclinação \h{θ}. \h{Demonstre}, pela 2ª Lei (translação e rotação) e por \h{a_{cm} = Rα}, que \h{a_{cm} = ⅔ g senθ}. Depois avalie criticamente: qual o \h{μ_s mínimo} para o rolamento ocorrer de fato, com \h{θ = 30°}?`},
+ {k:'dados',t:'Dados e incógnitas',eq:[R`I = \f{1}{2}MR^{2},   a_{cm} = Rα`,R`provar:  a_{cm} = \f{2}{3}g senθ`,R`calcular:  μ_{s,mín}  para θ = 30°`],why:R`Em demonstração, o resultado já vem escrito: o trabalho é chegar a ele sem pular passos.`},
+ {k:'ferr',t:'Forças no cilindro',eq:[R`Mg (peso, no centro)`,R`N (normal, ⊥ à rampa)`,R`f (atrito estático, para cima da rampa)`],why:R`Sem atrito o cilindro deslizaria sem girar. É o atrito que cria o torque para girar. Ele aponta para cima da rampa porque se opõe ao deslizamento do ponto de contato.`,real:R`No gelo (pouco atrito) um cilindro desce deslizando, quase sem rolar.`},
+ {k:'conta',t:'Translação e direção perpendicular',eq:[R`ao longo da rampa:  Mg senθ − f = M a_{cm}    (1)`,R`perpendicular:  N = Mg cosθ    (2)`],why:R`Ao longo da rampa o peso empurra para baixo e f freia. Na perpendicular não há aceleração, logo N equilibra a componente do peso.`},
+ {k:'conta',t:'Rotação em torno do centro',eq:[R`f R = I α    (3)`],why:R`Só f gera torque em torno do centro: N e Mg passam por ele (braço zero).`},
+ {k:'conta',t:'Condição de rolamento',eq:[R`α = \f{a_{cm}}{R}`,R`f R = \f{1}{2}MR^{2} · \f{a_{cm}}{R}`,R`f = \f{1}{2}M a_{cm}    (4)`],why:R`O R do lado esquerdo e um R do lado direito cancelam.`},
+ {k:'res',t:'Juntar (4) em (1): a demonstração',eq:[R`Mg senθ − \f{1}{2}M a_{cm} = M a_{cm}`,R`g senθ = \f{3}{2}a_{cm}`,R`\h{a_{cm} = \f{2}{3} g senθ}  (c.q.d.)`],why:R`M cancela: a aceleração não depende de massa nem de raio. É ⅔ da de um bloco liso.`},
+ {k:'conta',t:'Atrito necessário',eq:[R`f = \f{1}{2}M a_{cm} = \f{1}{2}M · \f{2}{3}g senθ`,R`f = \f{1}{3}Mg senθ`]},
+ {k:'res',t:'Condição para não deslizar: f ≤ μ_{s} N',eq:[R`\f{1}{3}Mg senθ ≤ μ_{s} Mg cosθ`,R`μ_{s} ≥ \f{1}{3}tanθ`,R`θ = 30°:  μ_{s} ≥ \f{1}{3}(0,577) ≈ \h{0,19}`],why:R`tan 30° ≈ 0,577. Para θ = 30°, f = Mg/6 e N ≈ 0,866 Mg, e a razão f/N vale 0,19.`},
+ {k:'conf',t:'Avaliação crítica',ul:[R`μ_{s,mín} \h{não depende de M nem de R}; cresce com a inclinação (tanθ).`,R`Se μ_{s} da superfície for \h{menor que 0,19}, o cilindro desliza e rola ao mesmo tempo, e a_{cm} passa a ser g(senθ − μ_{k} cosθ).`,R`Para um c qualquer: μ_{s} ≥ \f{c}{1 + c}tanθ. Em 30°: anel ≈ 0,29, cilindro ≈ 0,19, esfera ≈ 0,17.`],
+  err:R`Usar f = μN como se sempre valesse. No rolamento puro, f é só o necessário (Mg/6 aqui); μN é o limite máximo.`,real:R`Madeira, borracha e concreto secos têm μ_{s} bem acima de 0,19, então o rolamento puro é plausível. Piso molhado ou oleoso pode não segurar.`}
+]},
+{g:'Lista 12',name:'Q06 · Anel, disco e esfera',badge:'Avançado',bc:'b-ava',rot:true,fig:FQ6,steps:[
+ {k:'enun',t:'Enunciado',enun:R`Três corpos de mesma massa M e raio R (\h{anel I = MR²}, \h{disco I = ½MR²}, \h{esfera I = ⅖MR²}) são soltos juntos do repouso no topo de uma rampa e rolam sem deslizar. Por conservação de energia: (a) quem chega primeiro e por quê; (b) \h{v_{cm}} em função de \h{c}, com I = cMR²; (c) o efeito do \h{atrito de rolamento} real na análise e na ordem de chegada.`},
+ {k:'dados',t:'Dados',eq:[R`mesmos M, R e altura h; partem do repouso`,R`anel c = 1,   disco c = \f{1}{2},   esfera c = \f{2}{5}`],why:R`O coeficiente c resume a forma: quanto maior, mais massa longe do eixo.`},
+ {k:'ferr',t:'Energia com I = cMR²',eq:[R`Mgh = \f{1}{2}M v^{2} + \f{1}{2}(c M R^{2})\p{\f{v}{R}}^{2}`],why:R`Mesmo caminho da Q03, agora com c genérico. Usamos ω = v/R.`},
+ {k:'conta',t:'Simplificar',eq:[R`Mgh = \f{1}{2}M v^{2}\p{1 + c}`],why:R`R² e M cancelam. O resultado depende só de c.`},
+ {k:'res',t:'(b) Fórmula geral',eq:[R`\h{v_{cm} = \r{\f{2gh}{1 + c}}}`,R`a_{cm} = \f{g senθ}{1 + c}`],why:R`A segunda sai de v² = 2aL com h = L senθ.`},
+ {k:'conta',t:'Aplicar aos três (g = 9,8 e h = 1,2 m, só para ter números)',tb:{h:['Corpo','c','v_{cm}','valor'],r:[['anel','1',R`\r{gh}`,'3,43 m/s'],['disco',R`\f{1}{2}`,R`\r{\f{4}{3}gh}`,'3,96 m/s'],['esfera',R`\f{2}{5}`,R`\r{\f{10}{7}gh}`,'4,10 m/s']]},why:R`2/(1 + ½) = 4/3 e 2/(1 + ⅖) = 10/7.`},
+ {k:'res',t:'(a) Quem chega primeiro e por quê',eq:[R`\h{esfera → disco → anel}`,R`fração da energia que vira rotação:  \f{c}{1 + c}`,R`anel \f{1}{2} = 50%    disco \f{1}{3} ≈ 33%    esfera \f{2}{7} ≈ 29%`],why:R`Todos partem com a mesma energia Mgh. Quanto mais massa longe do eixo, mais energia fica presa na rotação e menos sobra para descer. O tempo na rampa cresce com √(1 + c).`,real:R`Experimento: um tubo de PVC e uma barra maciça de mesmo diâmetro. A barra sempre chega primeiro, seja qual for a massa.`,err:R`Dizer que o mais pesado ou o maior ganha. M e R não aparecem na fórmula.`},
+ {k:'sim',t:'Corrida na rampa: veja você mesmo',widget:'race',why:R`Mude o ângulo e solte. A ordem é sempre esfera, disco, anel, e não depende de massa nem de raio. Os tempos mostrados vêm de a = g senθ / (1 + c) numa rampa de 2,0 m.`,real:R`Se tiver um tubo de PVC e uma barra maciça de mesmo diâmetro, repita na sala.`},
+ {k:'ferr',t:'(c) Atrito de rolamento: o que muda',eq:[R`a_{cm} = \f{g\p{senθ − μ_{r} cosθ}}{1 + c},   μ_{r} = \f{b}{R}`],why:R`No caso real, corpo e piso se deformam e a normal desloca-se à frente do centro por uma distância b. Surge um torque N·b contra a rotação e a energia mecânica deixa de se conservar: parte vira calor. Todos ficam mais lentos, e se tanθ ≤ μ_{r} o corpo nem sai do lugar.`,real:R`Pneu murcho rola mais pesado que pneu calibrado: deforma mais e dissipa mais.`},
+ {k:'conf',t:'(c) Efeito na ordem de chegada',eq:[R`mesmo μ_{r}:  a razão entre os corpos não muda`,R`esfera ÷ disco:  \f{4,10}{3,96} ≈ 1,035  (só 3,5%)`,R`disco ÷ anel:  \f{3,96}{3,43} ≈ 1,15  (15%)`],why:R`Se μ_{r} fosse igual, a ordem se manteria. Na prática μ_{r} muda com material e rigidez. A diferença de 3,5% entre esfera e disco pode ser invertida por esse efeito, mas a do anel (15%) é robusta.`,tip:R`Na prova, diga: "o modelo ideal prevê esfera, disco e anel; o atrito de rolamento reduz as velocidades e pode embaralhar os corpos de c parecido."`}
+]},
+{g:'Lista 12',name:'Resumo da prova',badge:'Resumo',bc:'b-ger',rot:false,fig:'',steps:[
+ {k:'ferr',tag:'Resumo',t:'Fórmulas que a lista usa',tb:{h:['Situação','Fórmula'],r:[['Partículas',R`I = ∑ m r^{2}`],['Corpo qualquer',R`I = c M R^{2}`],['Energia de rotação',R`K_{rot} = \f{1}{2}I ω^{2}`],['2ª Lei da rotação',R`∑τ = I α,   τ = F · r`],['Rolar sem deslizar',R`v = ωR,   a = Rα`],['Rolando na rampa',R`v = \r{\f{2gh}{1 + c}},   a = \f{g senθ}{1 + c}`],['Atrito para rolar',R`μ_{s} ≥ \f{c}{1 + c}tanθ`]]}},
+ {k:'ferr',tag:'Resumo',t:'Valores de c (tabela)',tb:{h:['Corpo','c','I'],r:[['Anel / casca cilíndrica','1',R`MR^{2}`],['Disco / cilindro maciço',R`\f{1}{2}`,R`\f{1}{2}MR^{2}`],['Esfera maciça',R`\f{2}{5}`,R`\f{2}{5}MR^{2}`],['Casca esférica',R`\f{2}{3}`,R`\f{2}{3}MR^{2}`],['Haste, eixo no centro','—',R`\f{ML^{2}}{12}`]]},why:R`Steiner: I = I_{cm} + Md² para eixos paralelos, e um deles passa pelo centro de massa.`},
+ {k:'conf',tag:'Resumo',t:'Checklist antes de entregar',ul:[R`Unidades no SI? (cm, g e rpm convertidos)`,R`Elevei ao quadrado r, R e ω onde a fórmula pede?`,R`Incluí a energia de rotação quando o corpo gira?`,R`M e R cancelaram quando não eram dados?`,R`O resultado é coerente (esfera menor que bloco, I do anel maior que o do disco)?`,R`Escrevi unidade e destaquei a resposta?`]}
+]}
+);
+
+const FD=[
+SV(RD+'<path class="x" d="M150 20V112"/><rect class="e" x="195" y="56" width="10" height="16"/><path class="l" d="M150 92H200"/>'+T(175,87,'x')+T(40,50,'−L/2')+T(260,50,'+L/2')+T(200,48,'dm')+T(150,14,'eixo','t')),
+SV('<circle class="o" cx="150" cy="62" r="44"/>'+DOT(150,62,'var(--ink)')+'<path class="l" d="M150 62L181 31"/><circle class="e" cx="181" cy="93" r="6"/>'+T(173,50,'R')+T(198,112,'dm')+T(150,126,'eixo perpendicular ao plano, pelo centro','t')),
+SV('<circle class="b" cx="150" cy="65" r="52"/><circle class="ring" cx="150" cy="65" r="34"/>'+DOT(150,65,'var(--ink)')+'<path class="l" d="M150 65L124 44"/><path class="l" d="M150 65L187 102"/>'+T(122,40,'r')+T(180,92,'R')+T(246,50,'anel de largura dr','t')),
+SV('<circle class="b" cx="150" cy="65" r="52"/><circle cx="150" cy="65" r="30" style="fill:var(--board);stroke:var(--acc);stroke-width:2"/>'+DOT(150,65,'var(--ink)')+'<path class="l" d="M150 65L129 44"/><path class="l" d="M150 65L187 102"/>'+T(118,42,'R₁')+T(176,94,'R₂')+T(150,126,'a massa está entre R₁ e R₂','t')),
+SV('<circle class="b" cx="150" cy="65" r="50"/><path class="x" d="M150 8V122"/><rect class="e" x="105" y="41" width="90" height="4"/><path class="l" d="M138 65V45"/><path class="l" d="M150 37H195"/><path class="l" d="M150 65L185 100"/>'+T(130,58,'z')+T(172,32,'r')+T(176,90,'R')+T(250,50,'disco dz','t')),
+SV('<circle class="o" cx="150" cy="65" r="50" style="stroke-width:4"/><path class="x" d="M150 8V122"/><rect class="e" x="112" y="31" width="76" height="4"/><path class="l" d="M150 65L188 33"/><path class="l" d="M150 24H188"/>'+T(160,55,'θ')+T(228,20,'r = R senθ')+T(240,40,'anel dm','t')),
+SV('<ellipse class="b" cx="105" cy="62" rx="75" ry="42"/><circle class="e" cx="75" cy="44" r="5"/>'+T(75,36,'dm')+DOT(105,62,'var(--hi)')+T(105,82,'CM')+DOT(235,62,'var(--ink)')+T(235,82,'novo eixo','t')+'<path class="l" d="M105 104H235M105 98V110M235 98V110"/>'+T(170,98,'d')),
+SV('<rect class="b" x="70" y="28" width="150" height="74"/><path class="l" d="M45 65H255M145 12V118"/><circle cx="145" cy="65" r="6" fill="none" stroke="var(--hi)" stroke-width="2"/>'+DOT(145,65,'var(--hi)')+T(264,69,'x')+T(158,18,'y')+T(172,84,'z (⊥ ao plano)','t')),
+SV(RD+'<path class="x" d="M40 18V112"/>'+DOT(150,64,'var(--hi)')+'<path class="l" d="M40 94H150M40 88V100M150 88V100"/>'+T(95,88,'L/2')+T(150,48,'CM')+T(40,12,'eixo','t')),
+SV('<rect class="b" x="70" y="20" width="160" height="70"/><rect class="e" x="70" y="32" width="160" height="6"/><path class="l" d="M50 55H250M150 8V100"/><path class="l" d="M70 106H230M70 101V111M230 101V111"/><path class="l" d="M54 20V90M49 20H59M49 90H59"/>'+T(150,124,'a')+T(40,58,'b')+T(262,36,'faixa','t')),
+SV('<rect class="b" x="50" y="26" width="200" height="66"/><rect class="e" x="190" y="26" width="8" height="66"/><path class="x" d="M150 10V108"/><path class="l" d="M150 80H190"/>'+T(170,74,'z')+'<path class="l" d="M50 112H250M50 107V117M250 107V117"/>'+T(150,127,'L')+T(228,20,'disco dz','t'))
+];
+const DED=[
+['Haste · eixo no centro',[R`I = \f{ML^{2}}{12}`],R`Usado em: Q01 (comparar eixos) e tabela de c.`,[
+ ['Geometria e eixo',[R`Haste de comprimento L e massa M`,R`eixo perpendicular pelo centro; x de −L/2 a +L/2`],R`Cada ponto está a uma distância |x| do eixo.`],
+ ['Elemento de massa',[R`dm = λ dx = \f{M}{L}dx`],R`Corpo homogêneo: λ = M/L é constante.`],
+ ['Montar a integral',[R`I = \I{}{} x^{2} dm = \f{M}{L}\I{−L/2}{L/2} x^{2} dx`],R`Como r² = |x|² = x², o módulo desaparece.`],
+ ['Integrar',[R`I = \f{M}{3L}\e{x^{3}}{−L/2}{L/2} = \f{M}{3L}\p{\f{L^{3}}{8} + \f{L^{3}}{8}}`,R`I = \f{M}{3L} · \f{L^{3}}{4}`],R`As duas metades se somam. Por simetria, bastaria integrar de 0 a L/2 e dobrar.`]]],
+['Anel e casca fina',[R`I = MR^{2}`],R`Usado em: Q06 (c = 1) e Q05 (atrito para o anel).`,[
+ ['Geometria',[R`Anel de raio R e massa M`,R`eixo perpendicular ao plano, pelo centro`],R`Vale também para casca cilíndrica fina de qualquer comprimento.`],
+ ['Distância ao eixo',[R`r = R para todo elemento dm`],R`Não há distribuição de distâncias para integrar.`],
+ ['Retirar a constante',[R`I = \I{}{} R^{2} dm = R^{2}\I{}{} dm`],''],
+ ['Massa total',[R`\I{}{} dm = M`],R`Este é o maior I possível para M e R dados.`]]],
+['Disco e cilindro maciço',[R`I = \f{1}{2}MR^{2}`],R`Usado em: Q02, Q04, Q05 e Q06.`,[
+ ['Elemento: anel',[R`anel de raio r e largura dr`],R`Simetria circular: todo o anel está à distância r do eixo.`],
+ ['Área do anel',[R`dA = 2πr dr`],R`Planificado, o anel é um retângulo 2πr × dr.`],
+ ['Massa do anel',[R`σ = \f{M}{πR^{2}}`,R`dm = σ dA = \f{2M}{R^{2}} r dr`],R`Teste: a soma de dm de 0 a R dá M.`],
+ ['Contribuição',[R`dI = r^{2} dm = \f{2M}{R^{2}} r^{3} dr`],''],
+ ['Integrar',[R`I = \f{2M}{R^{2}}\I{0}{R} r^{3} dr = \f{2M}{R^{2}} · \f{R^{4}}{4}`],R`O 2 cancela com o 4 e sobra ½. Cilindro maciço é uma pilha de discos: o resultado não depende de L.`]]],
+['Cilindro oco',[R`I = \f{1}{2}M\p{R_{1}^{2} + R_{2}^{2}}`],R`Usado em: tubos e rolos ocos (c fica entre ½ e 1).`,[
+ ['Estratégia',[R`I_{oco} = I(R_{2}) − I(R_{1})`],R`Maciço de raio R₂ menos maciço de raio R₁, com mesmo L e mesma densidade.`],
+ ['Massas',[R`M_{2} = ρπR_{2}^{2}L`,R`M_{1} = ρπR_{1}^{2}L`],''],
+ ['Subtrair',[R`I = \f{1}{2}M_{2}R_{2}^{2} − \f{1}{2}M_{1}R_{1}^{2}`,R`I = \f{1}{2}ρπL\p{R_{2}^{4} − R_{1}^{4}}`],R`Usa o resultado do disco duas vezes.`],
+ ['Fatorar',[R`R_{2}^{4} − R_{1}^{4} = \p{R_{2}^{2} − R_{1}^{2}}\p{R_{2}^{2} + R_{1}^{2}}`],''],
+ ['Reconhecer a massa',[R`M = ρπL\p{R_{2}^{2} − R_{1}^{2}}`],R`Teste: R₁ = 0 dá ½MR² (maciço); R₁ → R₂ dá MR² (casca fina).`]]],
+['Esfera maciça',[R`I = \f{2}{5}MR^{2}`],R`Usado em: Q03 e Q06 (c = ⅖).`,[
+ ['Fatiar em discos',[R`disco na altura z, espessura dz`,R`r^{2} = R^{2} − z^{2}`],R`Pitágoras. A variável z vai de −R a +R.`],
+ ['Massa do disco',[R`ρ = \f{3M}{4πR^{3}}`,R`dm = ρπ\p{R^{2} − z^{2}}dz`],''],
+ ['Inércia do disco',[R`dI = \f{1}{2}dm · r^{2} = \f{1}{2}ρπ\p{R^{2} − z^{2}}^{2}dz`],R`Reaproveita ½mr² do disco.`],
+ ['Expandir e integrar',[R`I = \f{1}{2}ρπ\e{R^{4}z − \f{2}{3}R^{2}z^{3} + \f{z^{5}}{5}}{−R}{R}`,R`I = ρπR^{5} · \f{8}{15}`],R`1 − 2/3 + 1/5 = 8/15. O integrando é par: vale o dobro do valor em z = R.`],
+ ['Substituir ρ',[R`I = \f{3M}{4πR^{3}} · πR^{5} · \f{8}{15}`],R`24/60 = 2/5.`]]],
+['Casca esférica fina',[R`I = \f{2}{3}MR^{2}`],R`Usado em: tabela de c.`,[
+ ['Elemento: anel em θ',[R`r = R senθ`,R`dA = 2πR^{2} senθ dθ`],R`θ é medido a partir do eixo; a largura de arco é R dθ.`],
+ ['Massa do anel',[R`σ = \f{M}{4πR^{2}}`,R`dm = \f{M}{2} senθ dθ`],R`Teste: a soma de 0 a π dá M.`],
+ ['Contribuição',[R`dI = r^{2} dm = \f{MR^{2}}{2} sen^{3}θ dθ`],''],
+ ['Integral de sen³θ',[R`sen^{3}θ = senθ\p{1 − cos^{2}θ},   u = cosθ`,R`\I{0}{π} sen^{3}θ dθ = \I{−1}{1}\p{1 − u^{2}}du = \f{4}{3}`],R`Os limites invertem, e o sinal de du os recoloca em ordem.`],
+ ['Resultado parcial',[R`I = \f{MR^{2}}{2} · \f{4}{3}`],'']]],
+['Teorema de Steiner',[R`I = I_{cm} + Md^{2}`],R`Usado em: haste na ponta e cilindro transversal.`,[
+ ['Coordenadas',[R`origem no centro de massa; novo eixo passa por (d, 0)`,R`elemento dm em (x′, y′)`],''],
+ ['Distâncias ao quadrado',[R`eixo do CM:  r′^{2} = x′^{2} + y′^{2}`,R`novo eixo:  r^{2} = (x′ − d)^{2} + y′^{2}`],''],
+ ['Desenvolver',[R`I = \I{}{}\p{x′^{2} + y′^{2}}dm − 2d\I{}{} x′ dm + d^{2}\I{}{} dm`],''],
+ ['Interpretar cada termo',[R`I = I_{cm} − 2d\p{M x′_{cm}} + Md^{2},   x′_{cm} = 0`],R`O termo cruzado some porque a origem é o CM. Por isso um dos eixos precisa passar por ele.`]]],
+['Eixos perpendiculares',[R`I_{z} = I_{x} + I_{y}`],R`Usado em: placa e disco pelo diâmetro.`,[
+ ['Lâmina no plano xy',[R`elemento dm em (x, y)`,R`distância ao eixo z:  r^{2} = x^{2} + y^{2}`],R`Vale apenas para corpos planos e finos.`],
+ ['Eixos no plano',[R`I_{x} = \I{}{} y^{2} dm`,R`I_{y} = \I{}{} x^{2} dm`],R`A distância ao eixo x é |y|; ao eixo y, |x|.`],
+ ['Somar',[R`I_{z} = \I{}{}\p{x^{2} + y^{2}}dm`],'']]],
+['Haste · eixo na extremidade',[R`I = \f{ML^{2}}{3}`],R`Usado em: Q01 (eixo na ponta, 4 vezes maior).`,[
+ ['Aplicar Steiner',[R`d = \f{L}{2}`,R`I = \f{ML^{2}}{12} + M\p{\f{L}{2}}^{2}`],''],
+ ['Somar',[R`I = \f{ML^{2}}{12} + \f{3ML^{2}}{12}`],''],
+ ['Conferir por integração',[R`I = \f{M}{L}\I{0}{L} x^{2} dx = \f{M}{L} · \f{L^{3}}{3}`],R`Dois caminhos independentes, o mesmo resultado.`]]],
+['Placa retangular',[R`I_{z} = \f{M\p{a^{2} + b^{2}}}{12}`],R`Usado em: chapas e portas girando por um eixo perpendicular.`,[
+ ['Dividir em faixas',[R`cada faixa horizontal é uma haste de comprimento a`],R`O eixo y corta cada faixa pelo centro.`],
+ ['Inércia da faixa',[R`dI_{y} = \f{1}{12}dm_{s}a^{2}`],R`Resultado da haste.`],
+ ['Somar as faixas',[R`I_{y} = \f{Ma^{2}}{12}`,R`I_{x} = \f{Mb^{2}}{12}`],''],
+ ['Eixos perpendiculares',[R`I_{z} = I_{x} + I_{y}`],R`A placa é uma lâmina plana.`]]],
+['Cilindro · eixo transversal',[R`I = M\p{\f{R^{2}}{4} + \f{L^{2}}{12}}`],R`Usado em: rolos e eixos girando por um diâmetro.`,[
+ ['Fatiar',[R`disco na posição z, com z de −L/2 a +L/2`,R`dm = \f{M}{L}dz`],''],
+ ['Disco em torno do diâmetro',[R`\f{1}{4}dm R^{2}`],R`Disco pelo diâmetro: MR²/4 (eixos perpendiculares).`],
+ ['Deslocar o eixo (Steiner)',[R`dI = \f{1}{4}dm R^{2} + dm z^{2} = \f{M}{L}\p{\f{R^{2}}{4} + z^{2}}dz`],''],
+ ['Integrar',[R`I = \f{M}{L}\e{\f{R^{2}z}{4} + \f{z^{3}}{3}}{−L/2}{L/2}`],R`Casos-limite: L ≫ R dá ML²/12 (haste); L → 0 dá MR²/4 (disco).`]]]
+].map((x,k)=>({g:'Deduções',name:x[0],badge:'Dedução',bc:'b-ded',rot:false,fig:FD[k],auto:true,res:x[1],use:x[2],
+  steps:x[3].map(s=>({k:'ded',t:s[0],eq:s[1],why:s[2]}))}));
+
+/* ===== motor de slides ===== */
+const ITEMS=DED.concat(LISTA);
+ITEMS.forEach(it=>{if(it.auto)it.steps.push({k:'res',t:'Resultado',eq:it.res,why:'Reveja os passos pelos marcadores acima ou escolha outra dedução.',tip:it.use,final:true})});
+const TAG={sim:'Simulador',enun:'Enunciado',dados:'1 · Dados',ferr:'2 · Ferramenta',conta:'3 · Conta',res:'4 · Resultado',conf:'5 · Conferência',ded:'Dedução'};
+const ROT=['dados','ferr','conta','res','conf'],ROTN=['Dados','Ferramenta','Conta','Resultado','Conferência'];
+const COL=[['why','Por quê'],['real','Na prática'],['err','Cuidado na prova'],['tip','Dica']];
+const $=id=>document.getElementById(id);
+let d=0,i=0,RAF=0;
+function slide(it,s,idx){
+  let side='';
+  if(it.fig&&!s.widget){
+    const tr=it.steps.slice(0,idx).filter(x=>x.eq&&(it.g==='Deduções'||x.k==='conta'||x.k==='res')).map(x=>'<div>'+fx(x.eq[x.eq.length-1])+'</div>').join('');
+    side='<aside class="side">'+it.fig+(tr?'<div class="trail"><small>Caminho até aqui</small>'+tr+'</div>':'')+'</aside>';
+  }
+  let m='';
+  if(it.rot&&ROT.includes(s.k)){m+='<div class="rot">'+ROT.map((r,k)=>'<span data-n="'+(k+1)+'"'+(s.k===r?' class="on"':'')+'>'+ROTN[k]+'</span>').join('')+'</div>'}
+  const lab=s.tag||TAG[s.k];const same=lab&&s.t===lab.split(' · ').pop();
+  m+='<h3 class="st">'+(lab?'<span style="color:var(--acc)">'+lab+'</span>'+(same?'':' · '):'')+(same?'':fx(s.t))+'</h3>';
+  if(s.enun)m+='<div class="enun">'+fx(s.enun)+'</div>';
+  if(s.widget)m+='<div class="wd" data-w="'+s.widget+'"></div>';
+  if(s.eq)m+='<div class="eq'+(s.k==='res'&&it.g==='Lista 12'?'':'')+'">'+lines(s.eq)+'</div>';
+  if(s.ul)m+='<ul class="lst">'+s.ul.map(x=>'<li>'+fx(x)+'</li>').join('')+'</ul>';
+  if(s.tb)m+='<table class="tb2"><tr>'+s.tb.h.map(h=>'<th>'+h+'</th>').join('')+'</tr>'+s.tb.r.map(r=>'<tr>'+r.map(c=>'<td>'+fx(c)+'</td>').join('')+'</tr>').join('')+'</table>';
+  COL.forEach(([key,lab])=>{if(s[key])m+='<div class="co '+key+'"><b>'+(key==='tip'&&it.auto?'Na lista':lab)+'</b>'+fx(s[key])+'</div>'});
+  return '<div class="sl'+(side?' two':'')+(s.final?' res':'')+'">'+side+'<section class="main">'+m+'</section></div>';
+}
+function overflow(sl){
+  if(sl.scrollHeight>sl.clientHeight+1)return true;
+  return [...sl.querySelectorAll('.eq')].some(e=>e.scrollWidth>e.clientWidth+1);
+}
+function fit(){
+  const sl=$('stage').firstElementChild;if(!sl)return;
+  const min=(innerWidth<760||innerHeight>innerWidth)?0.88:(innerHeight<520?0.8:0.5);
+  let k=1;sl.style.setProperty('--k',1);
+  while(k>min&&overflow(sl)){k-=0.04;sl.style.setProperty('--k',k.toFixed(2))}
+}
+function draw(){
+  const it=ITEMS[d],n=it.steps.length;
+  $('dt').textContent=it.name;
+  const b=$('bd');b.textContent=it.badge;b.className='badge '+it.bc;
+  $('cnt').textContent=(it.g==='Lista 12'?'Lista 12':'Deduções')+' · slide '+(i+1)+' de '+n;
+  $('dots').innerHTML='';
+  for(let k=0;k<n;k++){const x=document.createElement('button');x.className=k<i?'on':k===i?'cur':'';x.setAttribute('aria-label','Ir ao slide '+(k+1));x.onclick=e=>{e.stopPropagation();i=k;draw()};$('dots').appendChild(x)}
+  $('stage').innerHTML=slide(it,it.steps[i],i);
+  cancelAnimationFrame(RAF);const wd=$('stage').querySelector('.wd');if(wd)(WID[wd.dataset.w]||(()=>{}))(wd);
+  $('prev').disabled=(d===0&&i===0);
+  const last=i===n-1;
+  const nl=!last?'Próximo':(d<ITEMS.length-1?'Próximo: '+ITEMS[d+1].name.split(' · ')[0]:'Recomeçar');$('next').title=nl;$('next').setAttribute('aria-label',nl);
+  requestAnimationFrame(fit);
+  try{history.replaceState(null,'','#'+d+'-'+i)}catch(e){}
+}
+function go(dir){
+  try{navigator.vibrate&&navigator.vibrate(6)}catch(x){}
+  const n=ITEMS[d].steps.length;
+  if(dir>0){if(i<n-1)i++;else if(d<ITEMS.length-1){d++;i=0}else{d=0;i=0}}
+  else{if(i>0)i--;else if(d>0){d--;i=ITEMS[d].steps.length-1}}
+  draw();
+}
+$('next').onclick=()=>go(1);$('prev').onclick=()=>go(-1);
+/* toque/clique no slide: 1/3 esquerdo volta, o resto avança; arrastar também navega */
+let p0=null;
+const st=$('stage');
+st.addEventListener('pointerdown',e=>{p0=(e.target.closest&&e.target.closest('.wd'))?null:{x:e.clientX,y:e.clientY}});
+st.addEventListener('pointerup',e=>{
+  if(!p0)return;if(e.target.closest&&e.target.closest('.wd')){p0=null;return}const dx=e.clientX-p0.x,dy=e.clientY-p0.y;p0=null;
+  if(window.getSelection&&String(getSelection()))return;
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){go(dx<0?1:-1);return}
+  if(Math.abs(dx)<12&&Math.abs(dy)<12){const r=st.getBoundingClientRect();go(e.clientX-r.left<r.width*0.3?-1:1)}
+});
+st.addEventListener('pointercancel',()=>{p0=null});
+document.addEventListener('keydown',e=>{
+  if(!$('idx').hidden){if(e.key==='Escape')idx(false);return}
+  if(e.target&&e.target.tagName==='INPUT')return;
+  const k=e.key;
+  if(k==='ArrowRight'||k==='ArrowDown'||k==='PageDown'||k===' '||k==='Enter'){e.preventDefault();go(1)}
+  else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'||k==='Backspace'){e.preventDefault();go(-1)}
+  else if(k==='Home'){i=0;draw()}
+  else if(k==='End'){i=ITEMS[d].steps.length-1;draw()}
+  else if(k==='f'||k==='F')$('fs').click();
+  else if(k==='i'||k==='I'||k==='m'||k==='M')idx(true);
+  else if(k==='Escape'&&document.body.classList.contains('pres'))pres(false);
+});
+/* índice */
+function idx(on){
+  const o=$('idx');o.hidden=!on;if(!on)return;
+  let h='<button class="x" id="xc">Fechar</button>',g='';
+  ITEMS.forEach((it,k)=>{
+    if(it.g!==g){g=it.g;h+='<h3>'+(g==='Lista 12'?'Lista 12 resolvida':'Deduções (base teórica)')+'</h3><div class="g">'}
+    h+='<button data-k="'+k+'" class="'+(k===d?'cur':'')+'">'+it.name+'</button>';
+    if(!ITEMS[k+1]||ITEMS[k+1].g!==g)h+='</div>';
+  });
+  $('panel').innerHTML=h;
+  $('panel').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{d=+b.dataset.k;i=0;idx(false);draw()});
+  $('xc').onclick=()=>idx(false);
+}
+$('bi').onclick=()=>idx(true);
+$('idx').addEventListener('click',e=>{if(e.target.id==='idx')idx(false)});
+/* tema */
+const root=document.documentElement,mq=matchMedia('(prefers-color-scheme: dark)');
+const eff=()=>root.dataset.theme||(mq.matches?'dark':'light');
+function setT(t){root.dataset.theme=t;$('theme').innerHTML=t==='dark'?'<span class="ic">☀</span><span class="lb"> Claro</span>':'<span class="ic">☾</span><span class="lb"> Escuro</span>';try{localStorage.setItem('tema',t)}catch(e){}}
+let sv=null;try{sv=localStorage.getItem('tema')}catch(e){}
+setT(sv==='dark'||sv==='light'?sv:eff());
+$('theme').onclick=()=>setT(eff()==='dark'?'light':'dark');
+/* tela cheia / modo apresentação */
+function pres(on){document.body.classList.toggle('pres',on);$('fs').innerHTML=on?'<span class="ic">✕</span><span class="lb"> Sair da tela cheia</span>':'<span class="ic">⛶</span><span class="lb"> Tela cheia</span>';
+  try{if(on&&navigator.wakeLock)navigator.wakeLock.request('screen').catch(()=>{})}catch(x){}
+  try{if(on&&!document.fullscreenElement){const p=document.documentElement.requestFullscreen();if(p&&p.catch)p.catch(()=>{})}else if(!on&&document.fullscreenElement)document.exitFullscreen()}catch(e){}
+  setTimeout(fit,60)}
+$('fs').onclick=()=>pres(!document.body.classList.contains('pres'));
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.classList.contains('pres'))pres(false)});
+addEventListener('resize',fit);
+pres(false);
+/* abrir onde parou: #item-slide */
+const m=location.hash.match(/^#(\d+)-(\d+)$/);
+if(m&&ITEMS[+m[1]]&&ITEMS[+m[1]].steps[+m[2]]){d=+m[1];i=+m[2]}
+draw();
+</script>
+</body>
+</html>
+
